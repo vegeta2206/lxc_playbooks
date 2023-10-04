@@ -1,6 +1,7 @@
 # lxc_playbooks
 
-Chaque répertoire contient un script en bash permettant depuis un hôte exécutant LXC d'automatiser la créations d'environnements containérisés.
+Chaque répertoire contient en général un script shell/bash permettant depuis un hôte exécutant LXC d'automatiser certaines d'environnements containérisés sous LXC/LXD.
+
 
 # make_galera_cluster
 
@@ -81,6 +82,19 @@ LISTEN    0         128                0.0.0.0:4567             0.0.0.0:*       
 galera3:
 LISTEN    0         80                 0.0.0.0:3306             0.0.0.0:*        users:(("mysqld",pid=2954,fd=32))                                              
 LISTEN    0         128                0.0.0.0:4567             0.0.0.0:*        users:(("mysqld",pid=2954,fd=11))                                             
+
+$ lxc ls
+
++----------+---------+---------------------+----------------------------------------------+-----------+-----------+
+|   NAME   |  STATE  |        IPV4         |                     IPV6                     |   TYPE    | SNAPSHOTS |
++----------+---------+---------------------+----------------------------------------------+-----------+-----------+
+| galera1  | RUNNING | 10.58.157.5 (eth0)  |                                              | CONTAINER | 0         |
++----------+---------+---------------------+----------------------------------------------+-----------+-----------+
+| galera2  | RUNNING | 10.58.157.6 (eth0)  |                                              | CONTAINER | 0         |
++----------+---------+---------------------+----------------------------------------------+-----------+-----------+
+| galera3  | RUNNING | 10.58.157.7 (eth0)  |                                              | CONTAINER | 0         |
++----------+---------+---------------------+----------------------------------------------+-----------+-----------+
+
 ```
 
 **Fini !**
