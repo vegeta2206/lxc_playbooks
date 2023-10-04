@@ -2,15 +2,19 @@
 
 # Définition des noms de conteneurs et IP
 CONTAINER_BASE_NAME="galera"
-CONTAINER_COUNT=3
 CONTAINER_NAMES=""
+CONTAINER_COUNT=3
+
+# il doit y avoir autant d'IP que de $CONTAINER_COUNT !!!
 CONTAINER_IPS=("10.58.157.5" "10.58.157.6" "10.58.157.7")
 
-# Convert CONTAINER_IPS array to comma separated string
+# Convertir tableau CONTAINER_IPS en chaine de caracteres à virgules
 IP_STRING=$(IFS=,; echo "${CONTAINER_IPS[*]}")
 
 
 CNT=0
+
+# Création de la variable du fichier de conf
 read -r -d '' GALERACNF <<EOM
 [galera]
 # Mandatory settings
@@ -32,7 +36,7 @@ wsrep_slave_threads = 2
 log_error = /var/log/mysql/error-galera.log
 EOM
 
-# Création des noms des conteneurs
+# Création des noms des conteneurs en fonction de $CONTAINER_COUNT
 for i in $(seq 1 $CONTAINER_COUNT); do
     CONTAINER_NAMES="$CONTAINER_NAMES $CONTAINER_BASE_NAME$i"
 done
@@ -54,7 +58,7 @@ for container in $CONTAINER_NAMES; do
     lxc network attach lxdbr0 $container eth0
     lxc config device set $container eth0 ipv4.address ${CONTAINER_IPS[$CNT]}
     sleep 2
-    lxc exec $container -- bash -c "apt-get update >/dev/null && apt-get upgrade -y /dev/null"
+    lxc exec $container -- bash -c "apt-get update >/dev/null && apt-get upgrade -y >/dev/null"
     lxc exec $container -- bash -c "apt-get install -y mariadb-server mariadb-client rsync >/dev/null"
     lxc exec $container -- bash -c "sed -i 's/bind-address.*/bind-address = 0.0.0.0/' /etc/mysql/mariadb.conf.d/50-server.cnf"
     lxc exec $container -- mysql -e "show variables like 'default_storage_engine';"
@@ -65,17 +69,25 @@ for container in $CONTAINER_NAMES; do
 done
 
 
+echo "Création du cluster Galera..."
 lxc exec galera1 -- bash -c "galera_new_cluster"
+
+echo "Hôte(s) actifs dans le cluster..."
 lxc exec galera1 -- mysql -e "show status like 'wsrep_cluster_size';"
 
 for i in $(seq 2 $CONTAINER_COUNT); do
+	echo "Démarrage du noeud MariaDB marrage du noeud MariaDB $CONTAINER_BASE_NAME$i ..."
 	lxc exec $CONTAINER_BASE_NAME$i -- bash -c "systemctl start mariadb.service"
 done
+sleep 1
 
+echo "Hôte(s) actifs dans le cluster à présent ..."
 lxc exec galera1 -- mysql -e "show status like 'wsrep_cluster_size';"
-lxc exec galera1 -- mysql -e "show status like 'wsrep_local_state_comment';"
-lxc exec galera2 -- mysql -e "show status like 'wsrep_local_state_comment';"
-lxc exec galera3 -- mysql -e "show status like 'wsrep_local_state_comment';"
+
+for i in $(seq 1 $CONTAINER_COUNT); do
+	echo "Host $CONTAINER_BASE_NAME$i Status :"
+        lxc exec $CONTAINER_BASE_NAME$i -- mysql -e "show status like 'wsrep_local_state_comment';"
+done
 
 echo "Cluster Galera MariaDB de base prêt."
 
